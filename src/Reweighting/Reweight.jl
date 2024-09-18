@@ -68,7 +68,7 @@ julia> i2 = PDBTools.selindex(atoms(simulation), "residue 15 and name HB3")
 1-element AbstractVector{<:Integer}:
  171
 
-julia> sum_of_dist = reweight(simulation, (i,j,d2) -> d2, i1, i2; cutoff = 25.0)
+julia> sum_of_dist = reweight(simulation, r -> r, i1, i2; cutoff = 25.0)
 -------------
 FRAME WEIGHTS
 -------------
@@ -109,7 +109,7 @@ This result is the energy difference between the  perturbed frame and the origin
 function reweight(
     simulation::Simulation, 
     f_perturbation::Function, 
-    group_1::AbstractVector{<:Integer}; 
+    group_1::AbstractVector{<:Integer};
     cutoff::Real = 12.0, 
     k::Real = 1.0, 
     T::Real = 1.0
@@ -127,9 +127,9 @@ function reweight(
             output = 0.0,
             output_name = :total_energy
         )
-        energy_vec[iframe] = map_pairwise!((x, y, i, j, d2, total_energy) -> total_energy + f_perturbation(i, j, sqrt(d2)/10), system)
+        energy_vec[iframe] = map_pairwise!((x, y, i, j, d2, total_energy) -> total_energy + f_perturbation(sqrt(d2)), system)
     end
-    @. prob_rel_vec = exp(-(energy_vec)/k*T)
+    @. prob_rel_vec = exp(-energy_vec/(k*T))
     prob_vec = prob_rel_vec/sum(prob_rel_vec)
     output = ReweightResults(prob_vec, prob_rel_vec, energy_vec)
     return output
@@ -138,9 +138,9 @@ function reweight(
     simulation::Simulation, 
     f_perturbation::Function, 
     group_1::AbstractVector{<:Integer}, 
-    group_2::AbstractVector{<:Integer};     
+    group_2::AbstractVector{<:Integer};    
     cutoff::Real = 12.0, 
-    k::Real = 1.0, 
+    k::Real = 1.0,
     T::Real = 1.0
 )
     prob_vec = zeros(length(simulation))
@@ -158,9 +158,9 @@ function reweight(
             output = 0.0,
             output_name = :total_energy
         )
-        energy_vec[iframe] = map_pairwise!((x, y, i, j, d2, total_energy) -> total_energy + f_perturbation(i, j, sqrt(d2)/10), system)
+        energy_vec[iframe] = map_pairwise!((x, y, i, j, d2, total_energy) -> total_energy + f_perturbation(sqrt(d2)), system)
     end
-    @. prob_rel_vec = exp(-(energy_vec)/k*T)
+    @. prob_rel_vec = exp(-energy_vec/(k*T))
     prob_vec = prob_rel_vec/sum(prob_rel_vec)
     output = ReweightResults(prob_vec, prob_rel_vec, energy_vec)
     return output
